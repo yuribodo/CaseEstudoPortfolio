@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id String @id @default(uuid())
+  name String
+  goal String
+  technologies Technology[] // Relação many-to-many com o modelo Technology
+  features Feature[]
+}
+
+model Technology {
+  id String @id @default(uuid())
+  name String
+  projects Project[] // Relação many-to-many com o modelo Project
+  
+}
+
+model Feature {
+  id String @id @default(uuid())
+  name String
+  projects Project[]
+  
+}
