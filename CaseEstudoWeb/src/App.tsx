@@ -5,6 +5,8 @@ import './App.css';
 import { Cloudinary} from '@cloudinary/url-gen'
 import imagem from './_c339f727-3431-46fb-8bf4-7053d5a8afee.jpg'
 import { motion } from "framer-motion"
+import Modal from './Modal';
+import { name } from '@cloudinary/url-gen/actions/namedTransformation';
 
 interface Project {
   id: string;
@@ -14,11 +16,21 @@ interface Project {
   features: { id: string; name: string }[];
 }
 
+
+
+
 const App: React.FC = () => {
   const cld = new Cloudinary({cloud: {cloudName: 'dhkltwykz'}})
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId , setSelectedProjectId] = useState<string>('')
+  const [modalAberto, setModalAberto] = useState(false);
+  const [newProject, setNewProject] = useState<Project[]>([]);
+
+  let Newprojects = {
+    name: "",
+    goal: ""
+  }
 
   useEffect(() => {
     getProjects();
@@ -34,16 +46,79 @@ const App: React.FC = () => {
     }
   }
 
+  const abrirModal = () => {
+    setModalAberto(true);
+  };
 
+  const data = {
+    "name": "Projetooo",
+    "goal": "fazer algo incrivellll",
+    "technologies": [
+      {
+        "id": "6ea9b473-3a07-4f91-ba07-3efc5733532c",
+        "name": "React"
+      },
+      {
+        "id": "20b74305-ffcb-48ef-95e7-acc1bfdf56b3",
+        "name": "JavaScript"
+      }
+    ],
+    "features": [
+      {
+        "id": "9a0c3f3b-abee-4867-a656-d3f2f682709e",
+        "name": "SearchBar"
+      }
+    ]
+  }
+  
+  const url = 'http://localhost:8080/projects';
+
+
+  const fecharModal = () => {
+    setModalAberto(false);
+  };
+
+  const criarProjeto = () => {
+    axios.post(url, data)
+    .then(response => {
+      console.log('Resposta da requisição:', response.data);
+    })
+    .catch(error => {
+      console.error('Ocorreu um erro:', error);
+    });
+    setModalAberto(false)
+  }
 
   const handleProjectClick = (projectName: string, projectId: string) => {
     setSelectedProject(projectName);
     setSelectedProjectId(projectId)
   };
 
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = event.target;
+    Newprojects.goal = value
+  };
   return (
     <>
       <div className="">
+      <Modal isOpen={modalAberto} onClose={fecharModal} >
+                        {/* Conteúdo do seu modal aqui */}
+                        <h1 className='  text-center font-serif font-bold text-3xl'>Criar Novo Projeto</h1>
+                        <div className=' m-9 text-xl flex flex-col items-center justify-center '>
+                            
+                          <input type="text" name="nome" placeholder="Nome do Projeto" className=' mb-2 border border-gray-300 rounded-lg shadow-sm p-2 focus:outline-none focus:ring focus:border-blue-500' onChange={handleInputChange}/>
+                          <input type="text" name="nome" placeholder="Goal do Projeto" className=' mb-2 border border-gray-300 rounded-lg shadow-sm p-2 focus:outline-none focus:ring focus:border-blue-500'/>
+                          <input type="text" name="nome" placeholder="Recursos do Projeto" className='mb-2 border border-gray-300 rounded-lg shadow-sm p-2 focus:outline-none focus:ring focus:border-blue-500'/>
+                          <input type="text" name="nome" placeholder="Tecnologias do Projeto" className=' border border-gray-300 rounded-lg shadow-sm p-2 focus:outline-none focus:ring focus:border-blue-500'/>
+                          
+                        </div>
+                        <div className='flex justify-center items-center'>
+                         
+                          <div className='flex justify-center items-center bg-green-700 h-[40px] font-bold rounded-lg w-[100px] cursor-pointer' onClick={criarProjeto}>
+                            Criar Projeto
+                          </div>
+                        </div> 
+                </Modal>
         <div className="flex justify-center p-[20px]">
           <div className="flex justify-center bg-yellow-700 h-[40vh] w-[90vw] rounded-3xl">
             {/* Renderiza a imagem e o nome do projeto no Thumbs */}
@@ -113,6 +188,14 @@ const App: React.FC = () => {
               <div className="bg-blue-400 w-[20vw] h-[20vh] rounded-2xl">Imagem</div>
             </div>
             
+          </div>
+
+
+
+          <div className='flex justify-center h-[20vh]'>
+            <div className=' bg-slate-900 h-[40px] w-[150px] cursor-pointer rounded-lg text-white' onClick={abrirModal}>
+                  Criar Novo Projeto
+            </div>
           </div>
         </div>
         
