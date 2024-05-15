@@ -16,6 +16,10 @@ interface Project {
   features: { id: string; name: string }[];
 }
 
+interface Technologies {
+  id: string;
+  name: string;
+}
 
 
 
@@ -25,17 +29,21 @@ const App: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId , setSelectedProjectId] = useState<string>('')
   const [modalAberto, setModalAberto] = useState(false);
-  const [newProject, setNewProject] = useState<Project[]>([]);
+  const [projectName, setProjectName] = useState('');
+  const [projectGoal, setProjectGoal] = useState('');
+  const [existingFeatures, setExistingFeatures] = useState<Technologies[]>([]);
+  const [existingTechnologies, setExistingTechnologies] = useState<Technologies[]>([]);
+  const [selectedFeature, setSelectedFeature] = useState<string[]>([]); // Track selected feature
+  const [selectedTechnology, setSelectedTechnology] = useState<string[]>([]); // Track selected technology
 
-  let Newprojects = {
-    name: "",
-    goal: ""
-  }
 
   useEffect(() => {
     getProjects();
+    getFeatures();
+    getTechnologies();
   }, []);
 
+  
 
   async function getProjects() {
     try {
@@ -46,79 +54,157 @@ const App: React.FC = () => {
     }
   }
 
+  
+  async function getFeatures() {
+    try {
+      const response = await axios.get<{data: Technologies[]}>('http://localhost:8080/features');
+      setExistingFeatures(response.data.data);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function getTechnologies() {
+    try {
+      const response = await axios.get<{data: Technologies[]}>('http://localhost:8080/technologies');
+      setExistingTechnologies(response.data.data);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   const abrirModal = () => {
     setModalAberto(true);
   };
 
-  const data = {
-    "name": "Projetooo",
-    "goal": "fazer algo incrivellll",
-    "technologies": [
-      {
-        "id": "6ea9b473-3a07-4f91-ba07-3efc5733532c",
-        "name": "React"
-      },
-      {
-        "id": "20b74305-ffcb-48ef-95e7-acc1bfdf56b3",
-        "name": "JavaScript"
-      }
-    ],
-    "features": [
-      {
-        "id": "9a0c3f3b-abee-4867-a656-d3f2f682709e",
-        "name": "SearchBar"
-      }
-    ]
-  }
-  
-  const url = 'http://localhost:8080/projects';
 
 
   const fecharModal = () => {
     setModalAberto(false);
   };
 
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    if (name === "nome") {
+      setProjectName(value);
+    } else if (name === "goal") {
+      setProjectGoal(value);
+    }
+  };
+
+  const selectTechnology = (tech: Technologies) => {
+    const isSelected = selectedTechnology.includes(tech.name);
+    if (isSelected) {
+      setSelectedTechnology(selectedTechnology.filter((selectedTech) => selectedTech !== tech.name));
+    } else {
+      setSelectedTechnology([...selectedTechnology, tech.name]);
+    }
+  };
+  
+  const selectFeature = (feat: Technologies) => {
+    const isSelected = selectedFeature.includes(feat.name);
+    if (isSelected) {
+      setSelectedFeature(selectedFeature.filter((selectedFeat) => selectedFeat !== feat.name));
+    } else {
+      setSelectedFeature([...selectedFeature, feat.name]);
+    }
+  };
+
   const criarProjeto = () => {
-    axios.post(url, data)
-    .then(response => {
-      console.log('Resposta da requisição:', response.data);
-    })
-    .catch(error => {
-      console.error('Ocorreu um erro:', error);
-    });
-    setModalAberto(false)
-  }
+    const selectedTechIds = existingTechnologies
+      .filter((tech) => selectedTechnology.includes(tech.name))
+      .map((tech) => ({ id: tech.id, name: tech.name }));
+  
+    const selectedFeatIds = existingFeatures
+      .filter((feat) => selectedFeature.includes(feat.name))
+      .map((feat) => ({ id: feat.id, name: feat.name }));
+  
+    const data = {
+      name: projectName,
+      goal: projectGoal,
+      technologies: selectedTechIds,
+      features: selectedFeatIds,
+    };
+  
+    axios
+      .post('http://localhost:8080/projects', data)
+      .then((response) => {
+        console.log('Resposta da requisição:', response.data);
+        setModalAberto(false);
+      })
+      .catch((error) => {
+        console.error('Ocorreu um erro:', error);
+      });
+  };
 
   const handleProjectClick = (projectName: string, projectId: string) => {
     setSelectedProject(projectName);
-    setSelectedProjectId(projectId)
+    setSelectedProjectId(projectId);
   };
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = event.target;
-    Newprojects.goal = value
-  };
+
   return (
     <>
       <div className="">
-      <Modal isOpen={modalAberto} onClose={fecharModal} >
-                        {/* Conteúdo do seu modal aqui */}
-                        <h1 className='  text-center font-serif font-bold text-3xl'>Criar Novo Projeto</h1>
-                        <div className=' m-9 text-xl flex flex-col items-center justify-center '>
-                            
-                          <input type="text" name="nome" placeholder="Nome do Projeto" className=' mb-2 border border-gray-300 rounded-lg shadow-sm p-2 focus:outline-none focus:ring focus:border-blue-500' onChange={handleInputChange}/>
-                          <input type="text" name="nome" placeholder="Goal do Projeto" className=' mb-2 border border-gray-300 rounded-lg shadow-sm p-2 focus:outline-none focus:ring focus:border-blue-500'/>
-                          <input type="text" name="nome" placeholder="Recursos do Projeto" className='mb-2 border border-gray-300 rounded-lg shadow-sm p-2 focus:outline-none focus:ring focus:border-blue-500'/>
-                          <input type="text" name="nome" placeholder="Tecnologias do Projeto" className=' border border-gray-300 rounded-lg shadow-sm p-2 focus:outline-none focus:ring focus:border-blue-500'/>
-                          
-                        </div>
-                        <div className='flex justify-center items-center'>
-                         
-                          <div className='flex justify-center items-center bg-green-700 h-[40px] font-bold rounded-lg w-[100px] cursor-pointer' onClick={criarProjeto}>
-                            Criar Projeto
-                          </div>
-                        </div> 
-                </Modal>
+      <Modal isOpen={modalAberto} onClose={fecharModal}>
+          <div className="bg-white p-8 rounded-lg max-w-md w-full">
+            <h1 className="text-center font-serif font-bold text-3xl">Criar Novo Projeto</h1>
+            <div className="mt-8">
+              <input
+                type="text"
+                name="nome"
+                placeholder="Nome do Projeto"
+                className="mb-4 border border-gray-300 rounded-lg shadow-sm p-2 focus:outline-none focus:ring focus:border-blue-500 w-full"
+                onChange={handleInputChange}
+              />
+              <input
+                type="text"
+                name="goal"
+                placeholder="Goal do Projeto"
+                className="mb-4 border border-gray-300 rounded-lg shadow-sm p-2 focus:outline-none focus:ring focus:border-blue-500 w-full"
+                onChange={handleInputChange}
+              />
+              <div className="mb-4">
+                <h3 className="text-lg font-bold">Recursos do Projeto:</h3>
+                <ul className="grid grid-cols-2 gap-2">
+                {existingFeatures.map((feature) => (
+                    <li
+                      key={feature.id}
+                      className={`bg-gray-100 rounded-lg p-2 cursor-pointer ${
+                        selectedFeature.includes(feature.name) ? 'bg-gray-300' : ''
+                      }`}
+                      onClick={() => selectFeature(feature)}
+                    >
+                      {feature.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">Tecnologias do Projeto:</h3>
+                <ul className="grid grid-cols-2 gap-2">
+                {existingTechnologies.map((tech) => (
+                    <li
+                      key={tech.id}
+                      className={`bg-gray-100 rounded-lg p-2 cursor-pointer ${
+                        selectedTechnology.includes(tech.name) ? 'bg-gray-300' : ''
+                      }`}
+                      onClick={() => selectTechnology(tech)}
+                    >
+                      {tech.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div className="flex justify-center mt-8">
+              <button className="bg-green-700 text-white font-bold rounded-lg py-2 px-4 w-32" onClick={criarProjeto}>
+                Criar Projeto
+              </button>
+            </div>
+          </div>
+        </Modal>
+
         <div className="flex justify-center p-[20px]">
           <div className="flex justify-center bg-yellow-700 h-[40vh] w-[90vw] rounded-3xl">
             {/* Renderiza a imagem e o nome do projeto no Thumbs */}
@@ -161,7 +247,7 @@ const App: React.FC = () => {
                 </motion.ul>
           </div>
 
-          <div className="flex justify-center space-x-[50vw] mt-[10px]">
+          <div className="flex justify-center space-x-[50vw] mt-[10px] overflow-y-auto">
             <div>
             <h3 className=' text-2xl font-bold p-4 text-white'>Tecnologias Usadas</h3>
               <motion.ul
