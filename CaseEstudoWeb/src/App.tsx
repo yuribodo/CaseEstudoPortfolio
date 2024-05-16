@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './App.css';
 import { Cloudinary} from '@cloudinary/url-gen'
@@ -9,6 +9,7 @@ import Slider from 'react-slick';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { FaArrowRight } from 'react-icons/fa'; // Importe o ícone de seta direita
+import {useDropzone} from 'react-dropzone'
 
 interface Project {
   id: string;
@@ -16,12 +17,15 @@ interface Project {
   goal: string;
   technologies: { id: string; name: string }[];
   features: { id: string; name: string }[];
+  imagemURL: string;
 }
 
 interface Technologies {
   id: string;
   name: string;
 }
+
+
 
 
 
@@ -33,10 +37,15 @@ const App: React.FC = () => {
   const [modalAberto, setModalAberto] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [projectGoal, setProjectGoal] = useState('');
+  const [projectImage, setProjectImage] = useState('');
   const [existingFeatures, setExistingFeatures] = useState<Technologies[]>([]);
   const [existingTechnologies, setExistingTechnologies] = useState<Technologies[]>([]);
   const [selectedFeature, setSelectedFeature] = useState<string[]>([]); // Track selected feature
   const [selectedTechnology, setSelectedTechnology] = useState<string[]>([]); // Track selected technology
+  const [state, setState] = useState('ready')
+  const [selectedProjectImage , setSelectedProjectImage] = useState<string>('')
+  
+  const [preview, setPreview] = useState<string | ArrayBuffer | null>(null)
 
 
   useEffect(() => {
@@ -94,6 +103,34 @@ const App: React.FC = () => {
     }
   };
 
+  async function handleOnSubmit(e: React.SyntheticEvent) {
+    e.preventDefault();
+
+    if (typeof acceptedFiles[0] === 'undefined' ) return;
+    const formData = new FormData();
+
+    formData.append('file', acceptedFiles[0]);
+    formData.append('upload_preset', 'hxn4njla');
+    formData.append('api_key', import.meta.env.VITE_CLOUDINARY_API_KEY);
+
+    const results = await fetch('https://api.cloudinary.com/v1_1/dhkltwykz/image/upload', {
+      method: 'POST',
+      body: formData
+    }).then(r => r.json());
+
+    console.log('results', results)
+    
+    
+    console.log(results.url)
+    const ImagemURL = results.url
+    console.log(ImagemURL)
+    
+
+    criarProjeto(ImagemURL)
+
+    setState('sent')
+  }
+
   const selectTechnology = (tech: Technologies) => {
     const isSelected = selectedTechnology.includes(tech.name);
     if (isSelected) {
@@ -112,7 +149,7 @@ const App: React.FC = () => {
     }
   };
 
-  const criarProjeto = () => {
+  const criarProjeto = (imaegmURL: string) => {
     const selectedTechIds = existingTechnologies
       .filter((tech) => selectedTechnology.includes(tech.name))
       .map((tech) => ({ id: tech.id, name: tech.name }));
@@ -126,6 +163,7 @@ const App: React.FC = () => {
       goal: projectGoal,
       technologies: selectedTechIds,
       features: selectedFeatIds,
+      imagemURL: imaegmURL
     };
   
     axios
@@ -139,10 +177,12 @@ const App: React.FC = () => {
       });
   };
 
-  const handleProjectClick = (projectName: string, projectId: string) => {
+  const handleProjectClick = (projectName: string, projectId: string, projectImagem: string) => {
     setSelectedProject(projectName);
     setSelectedProjectId(projectId);
+    setSelectedProjectImage(projectImagem);
   };
+
 
   const settings = {
     className: "center",
@@ -167,6 +207,20 @@ const App: React.FC = () => {
   };
 
   
+  const onDrop = useCallback((acceptedFiles : FileList)=> {
+    // Do something with the files
+    const file = new FileReader;
+
+    file.onload = function() {
+      setPreview(file.result)
+    }
+
+    file.readAsDataURL(acceptedFiles[0])
+
+    
+  }, [])
+  const {acceptedFiles, getRootProps, getInputProps, isDragActive} = useDropzone({onDrop})
+  
 
 
   return (
@@ -175,6 +229,7 @@ const App: React.FC = () => {
       <Modal isOpen={modalAberto} onClose={fecharModal}>
           <div className="bg-white p-8 rounded-lg max-w-md w-full">
             <h1 className="text-center font-serif font-bold text-3xl">Criar Novo Projeto</h1>
+            <form onSubmit={handleOnSubmit}>
             <div className="mt-8">
               <input
                 type="text"
@@ -190,6 +245,15 @@ const App: React.FC = () => {
                 className="mb-4 border border-gray-300 rounded-lg shadow-sm p-2 focus:outline-none focus:ring focus:border-blue-500 w-full"
                 onChange={handleInputChange}
               />
+              <div {...getRootProps()}>
+                <input {...getInputProps()} />
+                {
+                  isDragActive ?
+                    <p>Drop the files here ...</p> :
+                    <p>Drag 'n' drop some files here, or click to select files</p>
+                }
+              </div>
+              <img src={preview} alt="" />
               <div className="mb-4">
                 <h3 className="text-lg font-bold">Recursos do Projeto:</h3>
                 <ul className="grid grid-cols-2 gap-2">
@@ -224,10 +288,11 @@ const App: React.FC = () => {
               </div>
             </div>
             <div className="flex justify-center mt-8">
-              <button className="bg-green-700 text-white font-bold rounded-lg py-2 px-4 w-32" onClick={criarProjeto}>
+              <button type='submit' className="bg-green-700 text-white font-bold rounded-lg py-2 px-4 w-32" >
                 Criar Projeto
               </button>
             </div>
+            </form>
           </div>
         </Modal> 
 
@@ -239,8 +304,8 @@ const App: React.FC = () => {
         <div className="slider-container">
           <Slider {...settings}>
             {projects.map(project => (
-                <div key={project.id} onClick={() => handleProjectClick(project.name, project.id)} className="cursor-pointer p-5">
-                  <img src={imagem} alt={`Thumb do ${project.name}`} />
+                <div key={project.id} onClick={() => handleProjectClick(project.name, project.id, project.imagemURL)} className="cursor-pointer p-5">
+                  <img src={`${project.imagemURL}`} alt={`Thumb do ${project.name}`} />
                   <h2 className=' text-white font-bold text-xl'>{project.name}</h2>
                 </div>
               ))}
@@ -308,7 +373,9 @@ const App: React.FC = () => {
             </div>
             <div>
               <h3 className=' text-2xl font-bold p-4 text-white'>Imagem</h3>
-              <div className="bg-blue-400 w-[20vw] h-[20vh] rounded-2xl">Imagem</div>
+              <div className="bg-blue-400 w-[20vw] h-[20vh] rounded-2xl">
+                <img src={`${selectedProjectImage}`} alt="" />
+              </div>
             </div>
             
           </div>
