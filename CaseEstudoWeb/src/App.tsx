@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import Projects from './Projects';
 import './App.css';
 import { Cloudinary} from '@cloudinary/url-gen'
 import imagem from './_c339f727-3431-46fb-8bf4-7053d5a8afee.jpg'
 import { motion } from "framer-motion"
 import Modal from './Modal';
-import { name } from '@cloudinary/url-gen/actions/namedTransformation';
+import Slider from 'react-slick';
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+import { FaArrowRight } from 'react-icons/fa'; // Importe o ícone de seta direita
 
 interface Project {
   id: string;
@@ -142,6 +144,30 @@ const App: React.FC = () => {
     setSelectedProjectId(projectId);
   };
 
+  const settings = {
+    className: "center",
+    centerMode: true,
+    infinite: true,
+    centerPadding: "60px",
+    slidesToShow: 2,
+    speed: 500,
+    rows: 1,
+    slidesPerRow: 2,
+    
+  };
+
+  const SliderComponent = ({ children }: { children: React.ReactNode }) => {
+    console.log("Children of Slider:", children);
+    return (
+      <div>
+        {/* Componente Slider */}
+        {children}
+      </div>
+    );
+  };
+
+  
+
 
   return (
     <>
@@ -203,20 +229,31 @@ const App: React.FC = () => {
               </button>
             </div>
           </div>
-        </Modal>
+        </Modal> 
 
-        <div className="flex justify-center p-[20px]">
-          <div className="flex justify-center bg-yellow-700 h-[40vh] w-[90vw] rounded-3xl">
-            {/* Renderiza a imagem e o nome do projeto no Thumbs */}
-            {projects.map(project => (
-              <div key={project.id} onClick={() => handleProjectClick(project.name, project.id)} className="cursor-pointer">
-                <img src={imagem} alt={`Thumb do ${project.name}`} />
-                <h2>{project.name}</h2>
-              </div>
-            ))}
-          </div>
+        <div className=' text-white flex justify-center font-bold '>
+          <h1 className=' text-3xl p-4'>Meus Projetos</h1> 
         </div>
+                
+        
+        <div className="slider-container">
+          <Slider {...settings}>
+            {projects.map(project => (
+                <div key={project.id} onClick={() => handleProjectClick(project.name, project.id)} className="cursor-pointer p-5">
+                  <img src={imagem} alt={`Thumb do ${project.name}`} />
+                  <h2 className=' text-white font-bold text-xl'>{project.name}</h2>
+                </div>
+              ))}
+              
+        
+          </Slider>
+            <div className="next-arrow absolute top-1/3 right-4 transform -translate-y-1/2">
+              <FaArrowRight className="text-white text-3xl cursor-pointer" />
+            </div>
+         </div>
+        
 
+        { selectedProjectId && (
         <div>
           <div className="flex justify-center text-3xl font-bold">
             <h1 className=' text-white'>{selectedProject}</h1>
@@ -279,12 +316,12 @@ const App: React.FC = () => {
 
 
           <div className='flex justify-center h-[20vh]'>
-            <div className=' bg-slate-900 h-[40px] w-[150px] cursor-pointer rounded-lg text-white' onClick={abrirModal}>
-                  Criar Novo Projeto
+            <div className='flex justify-center bg-white h-[50px] w-[200px] cursor-pointer rounded-lg text-black font-bold text-xl' onClick={abrirModal}>
+                  <h2 className=' flex items-center'>Criar Novo Projeto</h2>
             </div>
           </div>
         </div>
-        
+        )}
         
       </div>
     </>
